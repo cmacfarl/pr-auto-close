@@ -16,19 +16,22 @@ const processPull = async (pull, octokit, config, log) => {
   if ((config.forkOnly == true) && (pull.head.repo.fork == false)) {
     return;
   }
-  log.info("Closed " + pull.base.repo.name + " " + pull.number)
+  log.info("Commenting on " + pull.base.repo.name + " " + pull.number)
   await octokit.issues.createComment({
     owner: pull.base.repo.owner.login,
     repo: pull.base.repo.name,
     issue_number: pull.number,
     body: config.closureComment,
   });
-  return await octokit.pulls.update({
+  log.info("Closing " + pull.base.repo.name + " " + pull.number)
+  ret = await octokit.pulls.update({
     owner: pull.base.repo.owner.login,
     repo: pull.base.repo.name,
     pull_number: pull.number,
     state: "closed"
   });
+  log.info("Closed " + pull.base.repo.name + " " + pull.number)
+  return ret;
 }
 
 const processRepository = async (repository, octokit, config, log) => {
@@ -39,7 +42,6 @@ const processRepository = async (repository, octokit, config, log) => {
 
 module.exports = async (app) => {
   app.log.info("Started pr-auto-close bot");
-
   const octokit = await app.auth(process.env.INSTALLATION_ID, app.log);
 
   /*
@@ -56,8 +58,8 @@ module.exports = async (app) => {
    * Go get any PRs that were opened while we were not running.  Don't care about pagination
    * because the number of open PRs are in the single digits.
    */
-  repositories = await octokit.apps.listReposAccessibleToInstallation();
-  repositories.data.repositories.forEach(async (repository) => { await processRepository(repository, octokit, cfg.config, app.log) });
+  // repositories = await octokit.apps.listReposAccessibleToInstallation();
+  // repositories.data.repositories.forEach(async (repository) => { await processRepository(repository, octokit, cfg.config, app.log) });
 
   /*
    * Handle PRs as they come in.
